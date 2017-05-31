@@ -77,7 +77,7 @@ The web app can be described by the following user stories:
 
 Example of the app dashboard:
 
-| Comany Name               | Chance to Been Acquired, % |
+| Comany Name               | Chance to Be Acquired, %   |
 |---------------------------|----------------------------|
 | Religare Health insurance | 69.97                      |
 | Supremia Grup             | 9.16                       |
