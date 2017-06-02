@@ -1,8 +1,8 @@
 import pandas as pd
 import MySQLdb as sql
 
-user = input("user: ")
-password = input("password: ")
+user = 'root'  # input("user: ")
+password = 'tu8s2J23'  # input("password: ")
 db = sql.connect(user=user, passwd=password, db="crunchbase")
 valid_degrees = ['mba', 'phd', 'ms']
 
@@ -17,7 +17,10 @@ df = pd.read_csv('../invested_companies.csv')
 for degree_name in valid_degrees + ['other']:
     deg = degrees[degrees.degree_type == degree_name][['count', 'company_id']]
     deg.columns = ['%s_degree' % degree_name, 'company_id']
-    df = df.merge(deg, on='company_id')
-df.to_csv('../invested_companies_and_degrees.csv', index=False)
+    df = df.merge(deg, on='company_id', how='left')
+offices = pd.read_sql("""SELECT object_id as company_id, count(*) as offices FROM crunchbase.cb_offices
+                         group by object_id;""", con=db)
+df = df.merge(offices, on='company_id', how='left')
+df.to_csv('../invested_companies_and_degrees_with_offices.csv', index=False)
 
 
