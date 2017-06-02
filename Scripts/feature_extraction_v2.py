@@ -1,8 +1,8 @@
 import pandas as pd
 import MySQLdb as sql
 
-user = 'root'  # input("user: ")
-password = 'tu8s2J23'  # input("password: ")
+user = input("user: ")
+password = input("password: ")
 db = sql.connect(user=user, passwd=password, db="crunchbase")
 valid_degrees = ['mba', 'phd', 'ms']
 
