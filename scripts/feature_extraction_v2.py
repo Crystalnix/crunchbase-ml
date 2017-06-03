@@ -21,6 +21,6 @@ for degree_name in valid_degrees + ['other']:
 offices = pd.read_sql("""SELECT object_id as company_id, count(*) as offices FROM crunchbase.cb_offices
                          group by object_id;""", con=db)
 df = df.merge(offices, on='company_id', how='left')
-df.to_csv('../invested_companies_and_degrees_with_offices.csv', index=False)
+df.to_csv('../data/invested_companies_and_degrees_with_offices.csv', index=False)
 
 

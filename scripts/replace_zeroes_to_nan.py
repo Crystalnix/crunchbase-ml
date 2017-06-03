@@ -9,4 +9,4 @@ for code in codes:
     col = "%s_funded_at" % code
     selection = df[col].apply(float) == 0.0
     df.loc[selection, ["%s_%s" % (code, s) for s in suff]] = np.nan
-df.to_csv("data.csv")
+df.to_csv("data/data.csv")

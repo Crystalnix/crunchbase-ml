@@ -26,4 +26,4 @@ for group_name in funding_groups.groups.keys():
         for column in funding_round_columns:
             result.loc[group_name, "{0}_{1}".format(code, column)] = row[column]
 
-result.to_csv('data.csv')
+result.to_csv('data/data.csv')
