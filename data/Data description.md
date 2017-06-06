@@ -7,10 +7,8 @@
 |----------------------|----------------------------------------------------------|---------------|
 | company_id           | Company ID                                               |               |
 | category_code        | Company category                                         |               |
-| country_code         | Country                                                  |               |
-| state_code           | State                                                    |               |
-| city                 | City                                                     |               |
-| region               | Region                                                   |               |
+| country_code         | Country                                                  | USA, NZL, other|
+| state_code           | State                                                    | California, other |
 | ipo                  | IPO                                                      | True or False |
 | is_acquired          | Company is acquired or not                               | True or False |
 | is_closed            | Company is closed or not                                 | True or False |

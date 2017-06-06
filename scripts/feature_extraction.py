@@ -2,12 +2,14 @@
 """This script forms csv data file with characteristics described in "Data description.md"
 from sql dump provided by CrunchBase and located in "sql" folder.
 The dump should be imported in local MySQL database.
+In addition, this script splits data into two parts: train_data and test_data.
 You will be asked for user, password and scheme for database you use."""
 
 import pandas as pd
 import MySQLdb as sql
 import numpy as np
 from scripts.sql_requests import financial_ipo_offices_products_request, degrees_request
+from sklearn.model_selection import train_test_split
 
 
 def fix_ipo(df):
@@ -63,8 +65,18 @@ df.loc[is_not_acquired, 'age'] = (
     pd.to_datetime('2014-01-01') - df[is_not_acquired]['founded_at'].apply(pd.to_datetime)) \
     .apply(lambda x: x.days)
 
-columns_to_drop = ['founded_at', 'closed_at', 'public_at', 'acquired_at']
+columns_to_drop = ['founded_at', 'closed_at', 'public_at', 'acquired_at', 'city', 'region']
+df.loc[:, 'country_code'] = df['country_code'].apply(lambda x: x if x in ['USA', 'NZL'] else 'other')
+df.loc[:, 'state_code'] = df['state_code'].apply(lambda x: 'California' if x == 'CA' else 'other')
+
 df.drop(columns_to_drop, inplace=True, axis=1)
 df.to_csv('../data/data.csv', index=False)
 
+x_train, x_test, y_train, y_test = train_test_split(df.drop(['is_acquired'], axis=1), df['is_acquired'],
+                                                    stratify=df['is_acquired'], test_size=0.2)
+x_train['is_acquired'] = y_train
+x_test['is_acquired'] = y_test
+
+x_train.to_csv('../data/train_data.csv', index=False)
+x_test.to_csv('../data/test_data.csv', index=False)
 
