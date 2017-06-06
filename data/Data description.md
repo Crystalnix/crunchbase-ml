@@ -1,4 +1,5 @@
 
+
 <H2>Data description</H2>
 <H3>Data dictionary</H3>
 
@@ -23,3 +24,7 @@
 | average_participants | Participants per round                                   |               |
 | total_rounds         | Total number of rounds                                   |               |
 | products_number      | Total number of products                                 |               |
+
+<H3>Variable notes</H3>
+<H4>Age</H4>
+Age is calculated by next rule: if company is acquired, then age is set up on acquiring date, else on 01.01.2014.
