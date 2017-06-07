@@ -27,7 +27,7 @@ def fix_column(df, column):
 def calculate_age(df):
     """Add an "age" column to df where age is set up on date of acquisition, if it was,
     or on 01.01.2014."""
-    is_acquired = df.is_acquired
+    is_acquired = df.is_acquired == True
     is_not_acquired = ~is_acquired
     df.loc[is_acquired, 'age'] = (
         df[is_acquired]['acquired_at'].apply(pd.to_datetime) - df[is_acquired]['founded_at'].apply(pd.to_datetime)) \

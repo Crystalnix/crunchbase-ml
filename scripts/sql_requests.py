@@ -14,7 +14,7 @@ FROM
 					city, region  
 					FROM {0}.cb_objects 
 					WHERE entity_type='Company') as companies 
-				RIGHT JOIN 
+				INNER JOIN 
 					(SELECT object_id as round_company_id, avg(raised_amount_usd) as average_funded, 
 					count(*) as total_rounds, avg(participants) as average_participants 
 					FROM {0}.cb_funding_rounds
