@@ -12,27 +12,30 @@ from scripts.sql_requests import financial_ipo_offices_products_request, degrees
 from sklearn.model_selection import train_test_split
 
 
-def fix_ipo(df):
-    """Set IPO information to NaN if IPO was after acquisition."""
-    ipo_fields = ['public_at']
-    ipo = pd.DataFrame({'ipo': df.public_at, 'acquired': df.acquired_at})
-    ipo.dropna(how='any', inplace=True)
-    ipo.loc[:, 'ipo'] = ipo.ipo.apply(pd.to_datetime)
-    ipo.loc[:, 'acquired'] = ipo.acquired.apply(pd.to_datetime)
-    ipo['ipo_after_acquired'] = (ipo['ipo'] - ipo['acquired']).apply(lambda x: x.days > 0)
-    indexes = ipo[ipo['ipo_after_acquired']].index
-    df.loc[indexes, ipo_fields] = np.nan
+def fix_column(df, column):
+    """Set "column" in df to NaN if "column" was after acquisition."""
+    column_after_acquired = '%s_after_acquired' % column
+    column_acquired = pd.DataFrame({column: df[column], 'acquired': df.acquired_at})
+    column_acquired.dropna(how='any', inplace=True)
+    column_acquired.loc[:, column] = column_acquired[column].apply(pd.to_datetime)
+    column_acquired.loc[:, 'acquired'] = column_acquired.acquired.apply(pd.to_datetime)
+    column_acquired[column_after_acquired] = (column_acquired[column] - column_acquired['acquired']).apply(lambda x: x.days > 0)
+    indexes = column_acquired[column_acquired[column_after_acquired]].index
+    df.loc[indexes, column] = np.nan
 
 
-def fix_closed_at(df):
-    """Set closed_at to NaN if closed after acquisition."""
-    closed = pd.DataFrame({'closed': df.closed_at, 'acquired': df.acquired_at})
-    closed.dropna(how='any', inplace=True)
-    closed.loc[:, 'closed'] = closed.closed.apply(pd.to_datetime)
-    closed.loc[:, 'acquired'] = closed.acquired.apply(pd.to_datetime)
-    closed['closed_after_acquired'] = (closed['closed'] - closed['acquired']).apply(lambda x: x.days > 0)
-    indexes = closed[closed['closed_after_acquired']].index
-    df.loc[indexes, 'closed_at'] = np.nan
+def calculate_age(df):
+    """Add an "age" column to df where age is set up on date of acquisition, if it was,
+    or on 01.01.2014."""
+    is_acquired = df.is_acquired
+    is_not_acquired = ~is_acquired
+    df.loc[is_acquired, 'age'] = (
+        df[is_acquired]['acquired_at'].apply(pd.to_datetime) - df[is_acquired]['founded_at'].apply(pd.to_datetime)) \
+        .apply(lambda x: x.days)
+    df.loc[is_not_acquired, 'age'] = (
+        pd.to_datetime('2014-01-01') - df[is_not_acquired]['founded_at'].apply(pd.to_datetime)) \
+        .apply(lambda x: x.days)
+    df.drop(df[df.age < 0].index, inplace=True)
 
 user = input("user: ")
 password = input("password: ")
@@ -49,26 +52,19 @@ for degree_name in valid_degrees + ('other',):
     deg.columns = ['%s_degree' % degree_name, 'company_id']
     df = df.merge(deg, on='company_id', how='left')
 
-fix_ipo(df)
-fix_closed_at(df)
+fix_column(df, 'public_at')
+fix_column(df, 'closed_at')
 
 df['ipo'] = df.public_at.notnull()
 df['is_acquired'] = df.acquired_at.notnull()
 df['is_closed'] = df.closed_at.notnull()
 
-is_acquired = df.is_acquired == True
-is_not_acquired = ~is_acquired
-df.loc[is_acquired, 'age'] = (
-    df[is_acquired]['acquired_at'].apply(pd.to_datetime) - df[is_acquired]['founded_at'].apply(pd.to_datetime)) \
-    .apply(lambda x: x.days)
-df.loc[is_not_acquired, 'age'] = (
-    pd.to_datetime('2014-01-01') - df[is_not_acquired]['founded_at'].apply(pd.to_datetime)) \
-    .apply(lambda x: x.days)
+calculate_age(df)
 
-columns_to_drop = ['founded_at', 'closed_at', 'public_at', 'acquired_at', 'city', 'region']
 df.loc[:, 'country_code'] = df['country_code'].apply(lambda x: x if x in ['USA', 'NZL'] else 'other')
 df.loc[:, 'state_code'] = df['state_code'].apply(lambda x: 'California' if x == 'CA' else 'other')
 
+columns_to_drop = ['founded_at', 'closed_at', 'public_at', 'acquired_at', 'city', 'region']
 df.drop(columns_to_drop, inplace=True, axis=1)
 df.to_csv('../data/data.csv', index=False)
 
