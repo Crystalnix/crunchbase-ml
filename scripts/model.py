@@ -7,6 +7,11 @@ from sklearn.model_selection import GridSearchCV, StratifiedKFold, cross_val_sco
 from sklearn.preprocessing import LabelBinarizer, StandardScaler, Imputer, FunctionTransformer
 from sklearn_pandas import DataFrameMapper, CategoricalImputer
 from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.svm import SVC
+from sklearn.neural_network import MLPClassifier
+
+import warnings
+warnings.filterwarnings("ignore")
 
 
 class ValueImputer(BaseEstimator, TransformerMixin):
@@ -23,8 +28,6 @@ class ValueImputer(BaseEstimator, TransformerMixin):
         if self.copy:
             X = X.copy()
         X[mask] = self.value
-        if np.isnan(X).any():
-            print("!")
         return X
 
     @staticmethod
@@ -51,8 +54,6 @@ class OnceFittedLabelBinarizer(LabelBinarizer):
 
     def transform(self, y):
         transformed = super().transform(y)
-        if np.isnan(transformed).any():
-            print("!")
         return transformed
 
 
@@ -76,8 +77,6 @@ class FundImputer(BaseEstimator, TransformerMixin):
         prediction = self.clf.predict(frame[null_funded].total_rounds.as_matrix().reshape(null_funded_shape))
         frame.loc[null_funded, 'average_funded'] = prediction.ravel()
         transformed = frame.average_funded.as_matrix().reshape(total_shape)
-        if np.isnan(transformed).any():
-            print("!")
         return transformed
 
 
@@ -102,8 +101,6 @@ class ParticipantsImputer(BaseEstimator, TransformerMixin):
         prediction = self.clf.predict(frame[null_participants].average_funded.as_matrix().reshape(null_funded_shape))
         frame.loc[null_participants, 'average_participants'] = prediction.ravel()
         transformed = frame.average_participants.as_matrix().reshape(total_shape)
-        if np.isnan(transformed).any():
-            print("!")
         return transformed
 
 
@@ -124,26 +121,32 @@ mapper = DataFrameMapper([
     (['category_code'], [CategoricalImputer(), category_binarizer], {'alias': 'category'}),
     (['country_code'], [CategoricalImputer(), country_binarizer], {'alias': 'country'}),
     (['state_code'], [CategoricalImputer(), state_binarizer], {'alias': 'state'}),
-    (['mba_degree'], [ValueImputer(0)]), # , log_transformer]),
-    (['phd_degree'], [ValueImputer(0)]),  # , log_transformer]),
-    (['ms_degree'], [ValueImputer(0)]),  # , log_transformer]),
+    (['mba_degree'], [ValueImputer(0), StandardScaler()]), # , log_transformer]),
+    (['phd_degree'], [ValueImputer(0), StandardScaler()]),  # , log_transformer]),
+    (['ms_degree'], [ValueImputer(0), StandardScaler()]),  # , log_transformer]),
     (['other_degree'], [ValueImputer(0)]),  # , log_transformer]),
-    (['age'], [Imputer()]),  # , log_transformer]),
-    (['offices'], [ValueImputer(1.0)]),  # , log_transformer]),
-    (['products_number'], [ValueImputer(1.0)]),  # , log_transformer]),
-    (['average_funded', 'average_participants'], [ParticipantsImputer()],  #, log_transformer],
+    (['age'], [Imputer(), StandardScaler()]),  # , log_transformer]),
+    (['offices'], [ValueImputer(1.0), StandardScaler()]),  # , log_transformer]),
+    (['products_number'], [ValueImputer(1.0), StandardScaler()]),  # , log_transformer]),
+    (['average_funded', 'average_participants'], [ParticipantsImputer(), StandardScaler()],  # , log_transformer],
      {'alias': 'average_participants'}),
     (['total_rounds'], None),
     (['ipo'], None),
     (['is_closed'], None),
-    (['total_rounds', 'average_funded'], [FundImputer(), StandardScaler()], {'alias': 'average_funded'}),  #  log_transformer], {'alias': 'average_funded'}),
+    (['total_rounds', 'average_funded'], [FundImputer(), StandardScaler()], {'alias': 'average_funded'}),  # log_transformer], {'alias': 'average_funded'}),
 ])
+SVC_C_grid = [10 ** i for i in range(-3, 4)]
+SVC_gamma_grid = [10 ** i for i in range(-3, 1)] + ['auto']
 
-grid = [{'clf': [LogisticRegression(solver='sag')], 'clf__C': [10 ** i for i in range(-5, 6)]},]
-        # {'clf': [RandomForestClassifier()], 'clf__n_estimators': [5 * i for i in range(1, 6)],
-        #  'clf__max_depth': [5 * i for i in range(1, 6)] + [None]},
-        # {'clf': [GradientBoostingClassifier()], 'clf__learning_rate': [10 ** i for i in range(-3, 4)],
-        #  'clf__n_estimators': [20 * i for i in range(1, 10)], 'clf__max_depth': [i + 3 for i in range(10)]}]
+MLP_hidden_layer_sizes = [[25], [50], [75], [100], [50, 25], [75, 50], [100, 75], [75, 50, 25], [100, 75, 50]]
+MLP_activation = ['identity', 'logistic', 'tanh', 'relu']
+# grid = [{'clf': [GradientBoostingClassifier()], #'clf__learning_rate': [10 ** i for i in range(-2, 2)],
+#          'clf__n_estimators': [20 * i for i in range(5, 8)], 'clf__max_depth': [i + 3 for i in range(2, 6)]},
+# grid = [{'clf': [SVC(kernel='rbf', class_weight='balanced')], 'clf__C': SVC_C_grid, 'clf__gamma':SVC_gamma_grid},
+grid = [{'clf': [SVC(kernel='poly', class_weight='balanced')], 'clf__C': SVC_C_grid, 'clf__gamma':SVC_gamma_grid,
+         'clf__degree': list(range(3, 6))},
+        {'clf': [MLPClassifier()], 'clf__hidden_layer_sizes': MLP_hidden_layer_sizes, 'clf__activation': MLP_activation,
+         'clf__alpha': [10 ** i for i in range(-5, 4)]}]
 
 train_data = pd.read_csv('../data/train_data.csv')
 test_data = pd.read_csv('../data/test_data.csv')
@@ -155,12 +158,15 @@ Y_test = test_data.is_acquired.as_matrix()
 estimators = [('fill_nan_log_transform', mapper), ('clf', LogisticRegression(solver='sag'))]
 pipe = Pipeline(estimators)
 transformed_train = mapper.fit_transform(X_train)
-clf = RandomForestClassifier() # LogisticRegression(solver='sag')
-# clf = GridSearchCV(pipe, grid, scoring='f1', cv=StratifiedKFold(n_splits=5, shuffle=True))
+clf = RandomForestClassifier()  # LogisticRegression(solver='sag')
+clf = GridSearchCV(pipe, grid, scoring='f1', cv=StratifiedKFold(n_splits=3, shuffle=True), verbose=5)
 # clf.fit(X_train, Y_train)
-clf.fit(transformed_train, Y_train.as_matrix())
-transformed_test = mapper.transform(X_test)
-prediction = clf.predict(transformed_test)
+clf.fit(X_train, Y_train.as_matrix())
+print("Best score: ", clf.best_score_)
+print("Best params: ", clf.best_params_)
+prediction = clf.predict(X_test)
+print(cross_val_score(clf, X_test, Y_test, scoring='f1'))
+tp = (Y_test & prediction).sum() / Y_test.sum()
 fp = (~Y_test & prediction).sum() / prediction.sum()
-print(fp)
-# print(cross_val_score(clf, transformed_test, Y_test, scoring='f1'))
+print("tp: ", tp)
+print("fp: ", fp)

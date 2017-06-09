@@ -75,4 +75,3 @@ x_test['is_acquired'] = y_test
 
 x_train.to_csv('../data/train_data.csv', index=False)
 x_test.to_csv('../data/test_data.csv', index=False)
-
