@@ -1,4 +1,3 @@
-
 """This script forms csv data file with characteristics described in "Data description.md"
 from sql dump provided by CrunchBase and located in "sql" folder.
 The dump should be imported in local MySQL database.
@@ -13,20 +12,25 @@ from sklearn.model_selection import train_test_split
 
 
 def fix_column(df, column):
-    """Set "column" in df to NaN if "column" was after acquisition."""
+    """
+    Set "column" in df to NaN if "column" was after acquisition.
+    """
     column_after_acquired = '%s_after_acquired' % column
     column_acquired = pd.DataFrame({column: df[column], 'acquired': df.acquired_at})
     column_acquired.dropna(how='any', inplace=True)
     column_acquired.loc[:, column] = column_acquired[column].apply(pd.to_datetime)
     column_acquired.loc[:, 'acquired'] = column_acquired.acquired.apply(pd.to_datetime)
-    column_acquired[column_after_acquired] = (column_acquired[column] - column_acquired['acquired']).apply(lambda x: x.days > 0)
+    column_acquired[column_after_acquired] = (column_acquired[column] - column_acquired['acquired']).apply(
+        lambda x: x.days > 0)
     indexes = column_acquired[column_acquired[column_after_acquired]].index
     df.loc[indexes, column] = np.nan
 
 
 def calculate_age(df):
-    """Add an "age" column to df where age is set up on date of acquisition, if it was,
-    or on 01.01.2014."""
+    """
+    Add an "age" column to df where age is set up on date of acquisition, if it was,
+    or on 01.01.2014.
+    """
     is_acquired = df.is_acquired == True
     is_not_acquired = ~is_acquired
     df.loc[is_acquired, 'age'] = (
@@ -37,14 +41,15 @@ def calculate_age(df):
         .apply(lambda x: x.days)
     df.drop(df[df.age < 0].index, inplace=True)
 
+
 user = input("user: ")
 password = input("password: ")
 scheme = input("scheme: ")
 
 db = sql.connect(user=user, passwd=password, db=scheme)
 df = pd.read_sql(financial_ipo_offices_products_request.format(scheme), con=db)
-valid_degrees = ('mba', 'phd', 'ms')
 
+valid_degrees = ('mba', 'phd', 'ms')
 degrees = pd.read_sql(degrees_request.format(scheme, valid_degrees), con=db)
 
 for degree_name in valid_degrees + ('other',):
