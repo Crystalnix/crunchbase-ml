@@ -4,7 +4,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.linear_model import RANSACRegressor
 from sklearn.model_selection import GridSearchCV, StratifiedKFold
-from sklearn.preprocessing import LabelBinarizer, StandardScaler, Imputer, FunctionTransformer
+from sklearn.preprocessing import LabelBinarizer, StandardScaler, Imputer
 from sklearn_pandas import DataFrameMapper, CategoricalImputer
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.svm import SVC
@@ -53,10 +53,6 @@ class OnceFittedLabelBinarizer(LabelBinarizer):
             return self
         self.once_fitted = True
         return super().fit(y)
-
-    def transform(self, y):
-        transformed = super().transform(y)
-        return transformed
 
 
 class FundImputer(BaseEstimator, TransformerMixin):
@@ -125,7 +121,6 @@ category_mapper = DataFrameMapper([
 ])
 category_mapper.fit(data)
 
-log_transformer = FunctionTransformer(np.log)
 
 mapper = DataFrameMapper([
     (['category_code'], [CategoricalImputer(), category_binarizer], {'alias': 'category'}),
