@@ -9,6 +9,7 @@ from sklearn_pandas import DataFrameMapper, CategoricalImputer
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.svm import SVC
 from sklearn.neural_network import MLPClassifier
+from sklearn.metrics import f1_score
 
 import warnings
 
@@ -143,6 +144,7 @@ mapper = DataFrameMapper([
     (['ipo'], None),
     (['is_closed'], None),
     (['total_rounds', 'average_funded'], [FundImputer(), StandardScaler()], {'alias': 'average_funded'}),
+    (['acquired_companies'], [ValueImputer(0)]),
 ])
 SVC_C_grid = [10 ** i for i in range(-3, 4)]
 SVC_gamma_grid = [10 ** i for i in range(-3, 1)] + ['auto']
@@ -163,7 +165,7 @@ Y_train = train_data.is_acquired.as_matrix()
 X_test = test_data.drop(['company_id', 'is_acquired'], axis=1)
 Y_test = test_data.is_acquired.as_matrix()
 
-estimators = [('fill_nan_log_transform', mapper), ('clf', LogisticRegression(solver='sag'))]
+estimators = [('fill_nan', mapper), ('clf', GradientBoostingClassifier())]
 pipe = Pipeline(estimators)
 clf = GridSearchCV(pipe, grid, scoring='f1', cv=StratifiedKFold(n_splits=3, shuffle=True), verbose=5)
 clf.fit(X_train, Y_train)
@@ -172,9 +174,9 @@ print("Best score: ", clf.best_score_)
 print("Best params: ", clf.best_params_)
 
 prediction = clf.predict(X_test)
-print(cross_val_score(clf, X_test, Y_test, scoring='f1'))
+print(f1_score(Y_test, prediction))
 
-tp = (Y_test & prediction).sum() / Y_test.sum()
-fp = (~Y_test & prediction).sum() / prediction.sum()
-print("tp: ", tp)
-print("fp: ", fp)
+recall = (Y_test & prediction).sum() / Y_test.sum()
+precision = (Y_test & prediction).sum() / prediction.sum()
+print("recall: ", recall)
+print("precision: ", precision)

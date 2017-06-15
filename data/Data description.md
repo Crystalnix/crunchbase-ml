@@ -22,6 +22,7 @@
 | average_participants | Participants per round                                   |               |
 | total_rounds         | Total number of rounds                                   |               |
 | products_number      | Total number of products                                 |               |
+| acquired_companies   | Total number of acquired companies                       |               |
 
 <H3>Variable notes</H3>
 <H4>Age</H4>

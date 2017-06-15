@@ -71,12 +71,12 @@ df.loc[:, 'state_code'] = df['state_code'].apply(lambda x: 'California' if x == 
 
 columns_to_drop = ['founded_at', 'closed_at', 'public_at', 'acquired_at', 'city', 'region']
 df.drop(columns_to_drop, inplace=True, axis=1)
-df.to_csv('../data/data.csv', index=False)
+df.to_csv('../data/data2.csv', index=False)
 
 x_train, x_test, y_train, y_test = train_test_split(df.drop(['is_acquired'], axis=1), df['is_acquired'],
                                                     stratify=df['is_acquired'], test_size=0.2)
 x_train['is_acquired'] = y_train
 x_test['is_acquired'] = y_test
 
-x_train.to_csv('../data/train_data.csv', index=False)
-x_test.to_csv('../data/test_data.csv', index=False)
+x_train.to_csv('../data/train_data2.csv', index=False)
+x_test.to_csv('../data/test_data2.csv', index=False)
