@@ -1,3 +1,6 @@
+"""This script is intended for building prediction model: it reads samples from the data file,
+apply transformations to them and searches for the best parameters for prediction."""
+
 import pandas as pd
 import numpy as np
 from sklearn.pipeline import Pipeline
@@ -10,6 +13,7 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.svm import SVC
 from sklearn.neural_network import MLPClassifier
 from sklearn.metrics import f1_score
+from .settings import DATA_FILE, TRAIN_FILE, TEST_FILE
 
 import warnings
 
@@ -17,6 +21,9 @@ warnings.filterwarnings("ignore")
 
 
 class ValueImputer(BaseEstimator, TransformerMixin):
+    """
+    Impute missed values with particular value.
+    """
     def __init__(self, value, missing_values='NaN', copy=True):
         self.value = value
         self.missing_values = missing_values
@@ -44,6 +51,9 @@ class ValueImputer(BaseEstimator, TransformerMixin):
 
 
 class OnceFittedLabelBinarizer(LabelBinarizer):
+    """
+    Usual LabelBinarizer, but it can be fitted only once.
+    """
     def __init__(self, neg_label=0, pos_label=1, sparse_output=False):
         super().__init__(neg_label, pos_label, sparse_output)
         self.once_fitted = False
@@ -109,69 +119,69 @@ class ParticipantsImputer(BaseEstimator, TransformerMixin):
         transformed = frame.average_participants.as_matrix().reshape(total_shape)
         return transformed
 
+if __name__ == '__main__':
+    data = pd.read_csv(DATA_FILE)
+    category_binarizer = OnceFittedLabelBinarizer()
+    country_binarizer = OnceFittedLabelBinarizer()
+    state_binarizer = OnceFittedLabelBinarizer()
+    category_mapper = DataFrameMapper([
+        (['category_code'], [CategoricalImputer(), category_binarizer]),
+        (['country_code'], [CategoricalImputer(), country_binarizer]),
+        (['state_code'], [CategoricalImputer(), state_binarizer]),
+    ])
+    category_mapper.fit(data)
 
-data = pd.read_csv('../data/data.csv')
-category_binarizer = OnceFittedLabelBinarizer()
-country_binarizer = OnceFittedLabelBinarizer()
-state_binarizer = OnceFittedLabelBinarizer()
-category_mapper = DataFrameMapper([
-    (['category_code'], [CategoricalImputer(), category_binarizer]),
-    (['country_code'], [CategoricalImputer(), country_binarizer]),
-    (['state_code'], [CategoricalImputer(), state_binarizer]),
-])
-category_mapper.fit(data)
+    mapper = DataFrameMapper([
+        (['category_code'], [CategoricalImputer(), category_binarizer], {'alias': 'category'}),
+        (['country_code'], [CategoricalImputer(), country_binarizer], {'alias': 'country'}),
+        (['state_code'], [CategoricalImputer(), state_binarizer], {'alias': 'state'}),
+        (['mba_degree'], [ValueImputer(0), StandardScaler()]),
+        (['phd_degree'], [ValueImputer(0), StandardScaler()]),
+        (['ms_degree'], [ValueImputer(0), StandardScaler()]),
+        (['other_degree'], [ValueImputer(0)]),
+        (['age'], [Imputer(), StandardScaler()]),
+        (['offices'], [ValueImputer(1.0), StandardScaler()]),
+        (['products_number'], [ValueImputer(1.0), StandardScaler()]),
+        (['average_funded', 'average_participants'], [ParticipantsImputer(), StandardScaler()],
+         {'alias': 'average_participants'}),
+        (['total_rounds'], None),
+        (['ipo'], None),
+        (['is_closed'], None),
+        (['total_rounds', 'average_funded'], [FundImputer(), StandardScaler()], {'alias': 'average_funded'}),
+        (['acquired_companies'], [ValueImputer(0)]),
+    ])
 
+    SVC_C_grid = [10 ** i for i in range(-3, 4)]
+    SVC_gamma_grid = [10 ** i for i in range(-3, 1)] + ['auto']
+    MLP_hidden_layer_sizes = [[25], [50], [75], [100], [50, 25], [75, 50], [100, 75], [75, 50, 25], [100, 75, 50]]
+    MLP_activation = ['logistic', 'tanh', 'relu']
+    grid = [{'clf': [GradientBoostingClassifier()], 'clf__n_estimators': [20 * i for i in range(5, 8)],
+             'clf__max_depth': [i + 3 for i in range(2, 6)]},
+            {'clf': [SVC(kernel='rbf', class_weight='balanced')], 'clf__C': SVC_C_grid, 'clf__gamma':SVC_gamma_grid},
+            {'clf': [SVC(kernel='poly', class_weight='balanced')], 'clf__C': SVC_C_grid, 'clf__gamma':SVC_gamma_grid,
+             'clf__degree': list(range(3, 6))},
+            {'clf': [MLPClassifier()], 'clf__hidden_layer_sizes': MLP_hidden_layer_sizes, 'clf__activation': MLP_activation,
+             'clf__alpha': [10 ** i for i in range(-1, 3)]}]
 
-mapper = DataFrameMapper([
-    (['category_code'], [CategoricalImputer(), category_binarizer], {'alias': 'category'}),
-    (['country_code'], [CategoricalImputer(), country_binarizer], {'alias': 'country'}),
-    (['state_code'], [CategoricalImputer(), state_binarizer], {'alias': 'state'}),
-    (['mba_degree'], [ValueImputer(0), StandardScaler()]),
-    (['phd_degree'], [ValueImputer(0), StandardScaler()]),
-    (['ms_degree'], [ValueImputer(0), StandardScaler()]),
-    (['other_degree'], [ValueImputer(0)]),
-    (['age'], [Imputer(), StandardScaler()]),
-    (['offices'], [ValueImputer(1.0), StandardScaler()]),
-    (['products_number'], [ValueImputer(1.0), StandardScaler()]),
-    (['average_funded', 'average_participants'], [ParticipantsImputer(), StandardScaler()],
-     {'alias': 'average_participants'}),
-    (['total_rounds'], None),
-    (['ipo'], None),
-    (['is_closed'], None),
-    (['total_rounds', 'average_funded'], [FundImputer(), StandardScaler()], {'alias': 'average_funded'}),
-    (['acquired_companies'], [ValueImputer(0)]),
-])
-SVC_C_grid = [10 ** i for i in range(-3, 4)]
-SVC_gamma_grid = [10 ** i for i in range(-3, 1)] + ['auto']
-MLP_hidden_layer_sizes = [[25], [50], [75], [100], [50, 25], [75, 50], [100, 75], [75, 50, 25], [100, 75, 50]]
-MLP_activation = ['logistic', 'tanh', 'relu']
-grid = [{'clf': [GradientBoostingClassifier()], 'clf__n_estimators': [20 * i for i in range(5, 8)],
-         'clf__max_depth': [i + 3 for i in range(2, 6)]},
-        {'clf': [SVC(kernel='rbf', class_weight='balanced')], 'clf__C': SVC_C_grid, 'clf__gamma':SVC_gamma_grid},
-        {'clf': [SVC(kernel='poly', class_weight='balanced')], 'clf__C': SVC_C_grid, 'clf__gamma':SVC_gamma_grid,
-         'clf__degree': list(range(3, 6))},
-        {'clf': [MLPClassifier()], 'clf__hidden_layer_sizes': MLP_hidden_layer_sizes, 'clf__activation': MLP_activation,
-         'clf__alpha': [10 ** i for i in range(-1, 3)]}]
+    train_data = pd.read_csv(TRAIN_FILE)
+    test_data = pd.read_csv(TEST_FILE)
+    X_train = train_data.drop(['company_id', 'is_acquired'], axis=1)
+    Y_train = train_data.is_acquired.as_matrix()
+    X_test = test_data.drop(['company_id', 'is_acquired'], axis=1)
+    Y_test = test_data.is_acquired.as_matrix()
 
-train_data = pd.read_csv('../data/train_data.csv')
-test_data = pd.read_csv('../data/test_data.csv')
-X_train = train_data.drop(['company_id', 'is_acquired'], axis=1)
-Y_train = train_data.is_acquired.as_matrix()
-X_test = test_data.drop(['company_id', 'is_acquired'], axis=1)
-Y_test = test_data.is_acquired.as_matrix()
+    estimators = [('fill_nan', mapper), ('clf', GradientBoostingClassifier())]
+    pipe = Pipeline(estimators)
+    clf = GridSearchCV(pipe, grid, scoring='f1', cv=StratifiedKFold(n_splits=3, shuffle=True), verbose=5)
+    clf.fit(X_train, Y_train)
 
-estimators = [('fill_nan', mapper), ('clf', GradientBoostingClassifier())]
-pipe = Pipeline(estimators)
-clf = GridSearchCV(pipe, grid, scoring='f1', cv=StratifiedKFold(n_splits=3, shuffle=True), verbose=5)
-clf.fit(X_train, Y_train)
+    print("Best score: ", clf.best_score_)
+    print("Best params: ", clf.best_params_)
 
-print("Best score: ", clf.best_score_)
-print("Best params: ", clf.best_params_)
+    prediction = clf.predict(X_test)
+    print(f1_score(Y_test, prediction))
 
-prediction = clf.predict(X_test)
-print(f1_score(Y_test, prediction))
-
-recall = (Y_test & prediction).sum() / Y_test.sum()
-precision = (Y_test & prediction).sum() / prediction.sum()
-print("recall: ", recall)
-print("precision: ", precision)
+    recall = (Y_test & prediction).sum() / Y_test.sum()
+    precision = (Y_test & prediction).sum() / prediction.sum()
+    print("recall: ", recall)
+    print("precision: ", precision)

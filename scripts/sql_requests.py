@@ -1,3 +1,7 @@
+"""This script contains requests and functions for extracting company information from database."""
+
+import pandas as pd
+
 financial_ipo_offices_products_request = """SELECT company_id, category_code, founded_at, closed_at, country_code, state_code, city, region, average_funded, total_rounds, average_participants, public_at, acquired_at, products_number, offices, acquired_companies 
 FROM
 	(SELECT * 
@@ -49,3 +53,22 @@ degrees_request = """SELECT count(*) as count, company_id, degree_type
                            JOIN {0}.cb_degrees as deg 
                            ON rel.person_object_id=deg.object_id) as rel_deg
                      GROUP BY company_id, degree_type;"""
+
+valid_degrees = ('mba', 'phd', 'ms')
+
+
+def get_financial_ipo_offices_products_query(connection, scheme):
+    """
+    Returns pandas DataFrame containing company information about finances, ipo, offices and products.
+    """
+
+    return pd.read_sql(financial_ipo_offices_products_request.format(scheme, valid_degrees), con=connection)
+
+
+def get_degrees_query(connection, scheme):
+    """
+    Returns pandas DataFrame containing information about how much in each company people are with degrees stored in
+    valid_degrees.
+    """
+
+    return pd.read_sql(degrees_request.format(scheme, valid_degrees), con=connection)
