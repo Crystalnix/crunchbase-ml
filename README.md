@@ -111,3 +111,23 @@ The requirements are not touch and are subject to discussion.
 In case of any issues they should be reported as soon as possible. We
 prefer to make and spot mistakes quickly while it's cheap to do them
 and adjust the direction.
+
+
+## Application
+For purpose of our work CLI application has been developed. For run application just use 'python acquisition_prediction.py'.
+
+### Installation
+For install application clone this repository in folder you need and run 'pip install -r requirements.txt'.
+
+### Usage
+acquisition_prediction.py [-h] [--extract | --fit] [--user USER]
+                                 [--password PASSWORD] [--scheme SCHEME]
+
+| Option                | Description                                                                                                                          |
+|-----------------------|--------------------------------------------------------------------------------------------------------------------------------------|
+| --extract             | Extract features from database and save them in files located by paths in settings.py. Also you should specify database credentials. |
+| --fit                 | Build prediction model and print best params and scores.                                                                             |
+| Database credentials:                                                                                                                                       |
+| --user USER           | Database user                                                                                                                        |
+| --password PASSWORD   | Database user password                                                                                                               |
+| --scheme SCHEME       | Database scheme                                                                                                                      |
