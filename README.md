@@ -129,8 +129,9 @@ acquisition_prediction.py [-h] [--extract | --fit] [--user USER]
 | --fit                 | Build prediction model and print best params and scores.                                                                             |
 
 Database credentials:
-| Credential            | Description                                                                                                                          |
-|-----------------------|--------------------------------------------------------------------------------------------------------------------------------------|
-| --user USER           | Database user                                                                                                                        |
-| --password PASSWORD   | Database user password                                                                                                               |
-| --scheme SCHEME       | Database scheme                                                                                                                      |
+
+| Credential          | Description            |
+|---------------------|------------------------|
+| --user USER         | Database user          |
+| --password PASSWORD | Database user password |
+| --scheme SCHEME     | Database scheme        |
