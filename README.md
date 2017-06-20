@@ -127,7 +127,10 @@ acquisition_prediction.py [-h] [--extract | --fit] [--user USER]
 |-----------------------|--------------------------------------------------------------------------------------------------------------------------------------|
 | --extract             | Extract features from database and save them in files located by paths in settings.py. Also you should specify database credentials. |
 | --fit                 | Build prediction model and print best params and scores.                                                                             |
-| Database credentials:                                                                                                                                       |
+
+Database credentials:
+| Credential            | Description                                                                                                                          |
+|-----------------------|--------------------------------------------------------------------------------------------------------------------------------------|
 | --user USER           | Database user                                                                                                                        |
 | --password PASSWORD   | Database user password                                                                                                               |
 | --scheme SCHEME       | Database scheme                                                                                                                      |
